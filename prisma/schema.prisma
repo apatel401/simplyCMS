@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  AUTHOR
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  role          UserRole  @default(AUTHOR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  posts         Post[]
+  
+  @@map("users")
+}
+
+model Post {
+  id            String        @id @default(uuid())
+  title         String
+  slug          String        @unique
+  content       String?       @db.Text
+  excerpt       String?       @db.Text
+  featuredImage String?
+  status        ContentStatus @default(DRAFT)
+  
+  // SEO fields
+  metaTitle     String?
+  metaDescription String?     @db.Text
+  
+  // Relationships
+  authorId      String
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  categoryId    String?
+  category      Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  tags          PostTag[]
+  
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@map("posts")
+  @@index([slug])
+  @@index([status])
+  @@index([authorId])
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?  @db.Text
+  posts       Post[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("categories")
+}
+
+model Tag {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  posts     PostTag[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@map("tags")
+}
+
+model PostTag {
+  id     String @id @default(uuid())
+  postId String
+  tagId  String
+  
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([postId, tagId])
+  @@map("post_tags")
+}
+
+model Media {
+  id          String   @id @default(uuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  path        String
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+  
+  @@map("media")
+}
